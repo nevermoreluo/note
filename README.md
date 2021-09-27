@@ -39,6 +39,35 @@ objects that are not garbage](http://lua-users.org/lists/lua-l/2008-07/msg00690.
 
 
 
+## Linux
+
+
+
+
+### nfs server关闭导致异常
+问题：
+依赖nfs的服务如果nfs服务异常会引发一系列的异常，下面例举一些工作中遇到的情况
+- `df -h` 命令卡顿长时间没有反馈
+- 挂载了nfs路径的docker服务器restart长时间无效果，或者卡在Created阶段
+- 挂载了nfs路径的docker服务器 无法关闭
+
+原理：
+
+
+结论：
+先判断本机是否有mount过nfs的目录, 通过mount命令判断已经挂载的目录    
+```bash
+$ sudo mount -l -t nfs4
+172.18.0.200:/games/internal on /games type nfs4 (rw,relatime,vers=4.0,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=172.22.156.55,local_lock=none,addr=172.18.0.200)
+
+# 查看挂载的目录内容有没有
+$ ls -l /games
+
+# 通过umount命令， 将有问题的目录umount
+$ sudo umount /games
+```
+
+
 ## Debug
 
 ### Core dump （核心转储）
