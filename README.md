@@ -41,7 +41,15 @@ objects that are not garbage](http://lua-users.org/lists/lua-l/2008-07/msg00690.
 
 ## Linux
 
+### VNC 
 
+ubuntu 20.04中已经将vino嵌入系统中，在settings-Sharing-点击上方的开关，点击Screen Sharing的开关根据提示设置密码或者不设置即可
+
+如果通过其他非linux vnc客户端链接时，例如通过vnc viewer链接 ubuntu的ip:5900端口会提示 `Unable to connect to VNC Server using your chosen security settting.`  
+此时还需要输入一下命令解决
+`$ gsettings set org.gnome.Vino require-encryption false` 注意在你开启vnc server的用户下执行该命令
+
+[参考](https://www.answertopia.com/ubuntu/ubuntu-remote-desktop-access-with-vino/)
 
 
 ### nfs server关闭导致异常
