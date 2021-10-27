@@ -5,7 +5,38 @@
 
 
 
+## C++
 
+### 多次调用setlocale，导致内存检测时，存在大量未释放内存
+起因是在查看内存泄漏问题时，看到古老的代码中存在内存问题，于是使用intel vtune定位问题，发现`setlocale(LC_ALL, "");`语句存在大量内存未释放。
+
+```cpp
+std::wstring NarrowToWide( const std::string &source )
+{
+	int len = source.length() + 1;
+	auto buf = array_ptr_wchar(new wchar_t[len]);
+	zeroMemory( buf.get(), (source.length() + 1) * sizeof(short) );
+#ifdef _WIN32
+	MultiByteToWideChar(CP_ACP, 0, source.c_str(), (int)source.length(), buf.get(), (int)(source.length()) * sizeof(short) );
+#elif __linux__
+	setlocale(LC_ALL, "");
+	mbstowcs(buf.get(), source.c_str(), len);
+#endif
+	return( buf.get() );
+}
+```
+
+原理：  
+
+函数NarrowToWide是个工具函数在程序多处调用，导致大量内存未释放。
+
+然而明显这是个底层系统调用，因此选择查阅阅读文档，看看有没有说明，发现返回值将被存储在static storage上。 因此理论上来说setlocale应当只在初始化时调用一回即可。
+A successful call to setlocale() returns an opaque string that
+corresponds to the locale set.  This string may be allocated in
+static storage. 
+
+解决：  
+讲工具函数内的setlocale删除掉，在程序初始化时设定setlocale
 
 
 ## Lua
@@ -316,7 +347,7 @@ perf top -p <pid>
 
 
 ### Intel VTune Profiler
-Intel VTune Profiler 以下简称Vtune,是intel推出的一款用于应用性能分析的一款软件工具集，是的区别于普通的分析软件，它其实一系列分析工具的集合。支持windows，linux，macos等系统，以及c/c++, c#, python等多种语言。
+Intel VTune Profiler 以下简称Vtune,是intel推出的一款用于应用性能分析的一款软件工具集，是的区别于普通的分析软件，它其实一系列分析工具的集合。支持windows，linux，macos等系统，以及c/c++, Java, go, .Net, python等多种语言。
 其内部还有多种分析维度
 ![image](image/vtune_utils.png)
 
@@ -343,5 +374,8 @@ Intel VTune Profiler 以下简称Vtune,是intel推出的一款用于应用性能
 
 ![image](image/vtune_ex1.png)  
 外部启动程序其实会根据配置载入不同的动态库实现不同功能因此主要都是系统库dlopen的占用,暂时不准备对这部分做优化，而且此处占用也只会在服务器起来的时候占用一次，因此本次暂时不优化该部分。
+
+我们甚至可以通过双击对应想要查看的函数，获得函数每行语句的cpu时间占比。  
+![image](image/vtune_ex1_code.png)
 
 
