@@ -191,6 +191,53 @@ $ ls -l /games
 $ sudo umount /games
 ```
 
+## DB
+
+### MongoDB 如何设置分片键  
+
+如何为一个分片集数据库设置片键  
+首先链接db，注意需要使用root权限的账号链接  
+`sh.status()`检查数据库是否支持分片以及各分片状态,如果报错`not authorized on config to execute command`,则需要进一步确认账号，是否拥有root权限  
+使用命令`sh.getBalancerState()`确认balancer开启    
+
+首先开启指定db的分片功能，`sh.enableSharding("<dbName>")`;  
+查看collection分片状态
+```
+> use <dbName>; 
+> db.getCollection('<collectionName>').getShardDistribution();
+```
+为collectin设置分片键，
+```
+> sh.shardCollection("<dbName>.<collectionName>", {"_id":"hashed" 或者 1})
+```
+
+1代表 range-based sharding, 即会按shardKey的值划分连续的范围进行存储
+hashed代表 hashed sharding， hashed则会将shardKey进行hash后散列存储在各个chuck内  
+
+
+这里可能会报错`Please create an index that starts with the proposed shard key before sharding the collection`,此时需要对相应的key设置index`db.getCollection('<collectionName>').createIndex({_id:"hashed"})` 注意这里的index设置需要和你上面分片的类型一样，上面写range-base这里也要是一样的  
+
+
+再次检查分片状态
+```
+mongos> db.getCollection('<collectionName>').getShardDistribution()
+
+Shard shard2 at shard2/mongodb1:27020,mongodb2:27020,mongodb3:27020
+ data : 19.96MiB docs : 645 chunks : 1
+ estimated data per chunk : 19.96MiB
+ estimated docs per chunk : 645
+
+Totals
+ data : 19.96MiB docs : 645 chunks : 1
+ Shard shard2 contains 100% data, 100% docs in cluster, avg obj size on shard : 31KiB
+```
+到此分片就设置完了
+注意:默认情况下chunk size为64M因此可能会出现设置完后，数据依旧全部存储在一个shard上的情况
+
+
+[如何合理的设置分片键](https://docs.mongodb.com/manual/core/sharding-choose-a-shard-key/)  
+
+
 
 ## Debug
 
