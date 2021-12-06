@@ -154,6 +154,29 @@ if (l_ulikely(<绝大多数情况都不会为真>)) {
 例如问题最开始的`if (l_unlikely(getCcalls(L) >= LUAI_MAXCCALLS))`, 因为正常情况下不可能引发`C Stack Overflow`的异常  
 
 
+### lua读取大文件,触发了频繁的lua gc，导致整体变慢
+问题：  
+>业务背景： 我们业务模式上需要动态的启动关闭游戏服务，发现启动游戏的过程比较慢  
+通过分析得知，拖慢cpu时间，导致整体游戏启动速度变慢的主要原因是，在lua层读取游戏配置文件(8.4M)时,产生了大量的gc调用
+
+原理：  
+那么为什么lua会调用大量的gc呢，代码上来说lua_load调用luaX_newstring如果string没有缓存过则会调用luaC_checkGC  
+
+其实逻辑也明了，即在lua读取string到内存时，会先检查是否在缓存中，如果不存在，那么尝试写入并检查gc释放空余内存。  
+然而对于比较大的文件，读取逻辑为依次read 4096字节数据，调用luaX_newstring导致了大量的gc被触发  
+
+
+解决方案：  
+查看lua文档，发现gc其实可以暂时关闭的，其实就是将gcrunning标为0，将读取配置文件的方法分装并在前后处理gc关闭事件即可
+```lua
+collectgarbage("stop"); -- 关闭gc
+collectgarbage("restart"); -- 打开gc
+```
+
+
+
+
+
 ## Linux
 
 ### VNC 
