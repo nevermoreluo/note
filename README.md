@@ -70,6 +70,20 @@ lib, *.so* -> ./bin # Copies all so files from packages lib folder to my "bin" f
 > $ LD_LIBRARY_PATH=[buildpath]/bin:$LD_LIBRARY_PATH [your exe sth like: main] 
 
 
+### mongo-c-driver执行查询时提示 "could not start SASLPrep for password" when connecting with user name/password
+问题：  
+项目使用conan包管理工具引入了mongo-cxx-driver,执行时报错 could not start SASLPrep for password 
+
+原理：  
+mongodb的[issues](
+https://jira.mongodb.org/browse/CXX-2201)中提到了该问题，本质原因是当mongo使用auth校验时,即`mongodb://xxx:aaa@172.18.0.203:27017/?authSource=admin`默认使用的authMechanism=SCRAM-SHA-256 依赖一个外部icu的库，要么是本地没有安装要么是conan编译时没有正确编译
+
+解决方案：  
+- 将authMechanism设置为SCRAM-SHA-1例如`mongodb://xxx:aaa@172.18.0.203:27017/?authMechanism=SCRAM-SHA-1&authSource=admin`
+- 不使用conan安装，根据官方文档手动安装mongo-c-driver
+- 目前1.17.3不支持，等官方新的移除icu依赖的版本，mongo官方210806已经建立了将移除icu的issue，但是感觉遥遥无期
+
+
 ## Lua
 
 ### 为什么在早期的库里面 在luaL_openlibs之前要关闭gc
