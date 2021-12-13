@@ -38,6 +38,38 @@ static storage.
 讲工具函数内的setlocale删除掉，在程序初始化时设定setlocale
 
 
+### 安装boost_log时提示undefined reference to boost::log::xxxx
+问题：  
+项目中使用boost_log做日志处理，编译最后提示boost::log undefined reference
+
+
+原理：  
+查看boost.log的[官网文档](https://www.boost.org/doc/libs/1_61_0/libs/log/doc/html/log/rationale/namespace_mangling.html), 发现官方提示由于boost::log的命名空间实现取决于配置和平台`<version><linkage>_<threading>_<system>`，因此在编译时应该提供`BOOST_LOG_DYN_LINK` or `BOOST_ALL_DYN_LINK`编译参数,将链接到boost::log的动态库上  
+
+解决：  
+在CMakeLists.txt中添加add_definitions(-DBOOST_LOG_DYN_LINK)  
+并确认本机LD_LIBRARY_PATH中是否包含libboost_log.so的动态链接即安装了boostlog的动态库，可以使用ldd命令查看编译后的对象是否包含libboost_log.so
+
+关于使用conan进行包管理的同学，可以按官网进一步设定动态库链接   
+下面给定一个conan 1.43.0的例子：   
+
+>修改 conanfile.txt，并重新install和编译  
+```
+[requires]
+boost/1.75.0
+
+[options]
+boost:shared=True
+
+[imports]
+bin, *.dll -> ./bin # Copies all dll files from packages bin folder to my "bin" folder
+lib, *.dylib* -> ./bin # Copies all dylib files from packages lib folder to my "bin" folder
+lib, *.so* -> ./bin # Copies all so files from packages lib folder to my "bin" folder
+```
+> 执行程序前添加环境变量
+> $ LD_LIBRARY_PATH=[buildpath]/bin:$LD_LIBRARY_PATH [your exe sth like: main] 
+
+
 ## Lua
 
 ### 为什么在早期的库里面 在luaL_openlibs之前要关闭gc
